@@ -11,16 +11,16 @@
       <ContactList
         v-if="filteredContactsCount > 0"
         :contacts="filteredContacts"
-        v-model:active-index="activeIndex"
+        v-model:activeIndex="activeIndex"
       />
       <p v-else>Không có liên hệ nào.</p>
 
       <div class="mt-3 row justify-content-around align-items-center">
-        <button class="btn btn-sm btn-primary" @click="refreshList()">
+        <button class="btn btn-sm btn-primary" @click="refreshList">
           <i class="bi bi-arrow-clockwise"></i> Làm mới
         </button>
 
-        <button class="btn btn-sm btn-success" @click="goToAddContact()">
+        <button class="btn btn-sm btn-success" @click="goToAddContact">
           <i class="bi bi-plus-lg"></i> Thêm mới
         </button>
 
@@ -36,6 +36,16 @@
           <i class="fas fa-address-card"></i>
         </h4>
         <ContactCard :contact="activeContact" />
+        <router-link
+          :to="{
+            name: 'contact.edit',
+            params: { id: activeContact._id },
+          }"
+        >
+          <span class="mt-2 badge badge-warning">
+            <i class="bi bi-pencil"></i> Hiệu chỉnh
+          </span>
+        </router-link>
       </div>
     </div>
   </div>
@@ -46,6 +56,7 @@ import ContactCard from "@/components/ContactCard.vue";
 import InputSearch from "@/components/InputSearch.vue";
 import ContactList from "@/components/ContactList.vue";
 import ContactService from "@/services/contact.service";
+import router from "@/router";
 
 export default {
   components: {
@@ -75,7 +86,7 @@ export default {
     filteredContacts() {
       if (!this.searchText) return this.contacts;
       return this.contacts.filter((_contact, index) => {
-        this.contactStrings[index].includes(this.searchText);
+        return this.contactStrings[index].includes(this.searchText);
       });
     },
     activeContact() {
@@ -123,5 +134,6 @@ export default {
 .page {
   text-align: left;
   max-width: 750px;
+  margin: auto;
 }
 </style>
