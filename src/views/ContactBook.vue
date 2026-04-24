@@ -17,15 +17,15 @@
 
       <div class="mt-3 row justify-content-around align-items-center">
         <button class="btn btn-sm btn-primary" @click="refreshList">
-          <i class="bi bi-arrow-clockwise"></i> Làm mới
+          <i class="fa-solid fa-arrow-rotate-right"></i> Làm mới
         </button>
 
         <button class="btn btn-sm btn-success" @click="goToAddContact">
-          <i class="bi bi-plus-lg"></i> Thêm mới
+          <i class="fa-solid fa-plus"></i> Thêm mới
         </button>
 
         <button class="btn btn-sm btn-danger" @click="removeAllContacts">
-          <i class="bi bi-trash3"></i> Xóa tất cả
+          <i class="fa-solid fa-trash"></i> Xóa tất cả
         </button>
       </div>
     </div>
@@ -43,7 +43,7 @@
           }"
         >
           <span class="mt-2 badge badge-warning">
-            <i class="bi bi-pencil"></i> Hiệu chỉnh
+            <i class="fa-solid fa-pen-to-square"></i> Hiệu chỉnh
           </span>
         </router-link>
       </div>
