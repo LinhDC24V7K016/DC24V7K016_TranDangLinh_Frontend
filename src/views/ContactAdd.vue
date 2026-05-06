@@ -2,7 +2,6 @@
   <div class="page">
     <h4>Thêm mới liên hệ</h4>
     <ContactForm :contact="contact" @submit:contact="addContact" />
-    <p>{{ message }}</p>
   </div>
 </template>
 
@@ -16,8 +15,13 @@ export default {
   },
   data() {
     return {
-      contact: null,
-      message: "",
+      contact: {
+        name: "",
+        email: "",
+        address: "",
+        phone: "",
+        favorite: false,
+      },
     };
   },
   methods: {
