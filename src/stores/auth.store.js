@@ -22,6 +22,18 @@ export const useAuthStore = defineStore("auth", {
         throw error;
       }
     },
+    async loginGoogle(credential) {
+      try {
+        const response = await authService.loginWithGoogle(credential);
+        this.user = response.user;
+        this.token = response.token;
+        localStorage.setItem("user", JSON.stringify(response.user));
+        localStorage.setItem("token", response.token);
+        return response;
+      } catch (error) {
+        throw error;
+      }
+    },
     async register(data) {
       try {
         const response = await authService.register(data);

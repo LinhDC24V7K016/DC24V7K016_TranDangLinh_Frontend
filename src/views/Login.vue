@@ -37,6 +37,12 @@
             {{ message }}
           </div>
         </div>
+
+        <div class="text-center mt-3 mb-3">
+          <p>Hoặc</p>
+          <GoogleLogin :callback="handleGoogleLogin" prompt />
+        </div>
+
         <div class="text-center mt-3">
           <p>
             Chưa có tài khoản?
@@ -93,6 +99,23 @@ export default {
             error.response.data.message) ||
           error.message ||
           error.toString();
+      } finally {
+        this.loading = false;
+      }
+    },
+    async handleGoogleLogin(response) {
+      this.loading = true;
+      this.message = "";
+      try {
+        const authStore = useAuthStore();
+        await authStore.loginGoogle(response.credential);
+        this.$router.push("/");
+      } catch (error) {
+        this.message =
+          (error.response &&
+            error.response.data &&
+            error.response.data.message) ||
+          "Đăng nhập Google thất bại.";
       } finally {
         this.loading = false;
       }

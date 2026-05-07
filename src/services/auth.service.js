@@ -12,6 +12,10 @@ class AuthService {
   async register(data) {
     return (await this.api.post("/register", data)).data;
   }
+
+  async loginWithGoogle(credential) {
+    return (await this.api.post("/google", { credential })).data;
+  }
 }
 
 export default new AuthService();
