@@ -21,6 +21,8 @@ export default {
         address: "",
         phone: "",
         favorite: false,
+        group: [],
+        avatar: "",
       },
     };
   },

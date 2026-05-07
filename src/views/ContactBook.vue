@@ -1,9 +1,15 @@
 <template>
   <div class="page row">
-    <div class="col-md-10">
+    <div class="col-md-8 mb-3">
       <InputSearch v-model="searchText" />
     </div>
-    <div class="mt-3 col-md-6">
+    <div class="col-md-4 mb-3">
+      <select v-model="selectedGroup" class="form-control" title="Lọc theo nhóm">
+        <option value="">-- Tất cả nhóm --</option>
+        <option v-for="grp in availableGroups" :key="grp" :value="grp">{{ grp }}</option>
+      </select>
+    </div>
+    <div class="col-md-6">
       <h4>
         Danh bạ
         <i class="fas fa-address-book"></i>
@@ -35,7 +41,7 @@
           Chi tiết liên hệ
           <i class="fas fa-address-card"></i>
         </h4>
-        <ContactCard :contact="activeContact" />
+        <ContactCard :contact="activeContact" @filter-group="selectedGroup = $event" />
         <router-link
           :to="{
             name: 'contact.edit',
@@ -68,30 +74,59 @@ export default {
     return {
       contacts: [],
       searchText: "",
-      activeIndex: -1,
+      selectedGroup: "",
+      activeId: null,
     };
   },
   watch: {
     searchText() {
-      this.activeIndex = -1;
+      // We don't explicitly need to clear activeId, it will auto-hide if filtered out.
+      // But to match previous behavior, we can clear it on new search text:
+      this.activeId = null;
     },
+    // We remove the selectedGroup watch so that it DOES NOT close the contact when clicking a group badge
   },
   computed: {
-    contactStrings() {
-      return this.contacts.map((contact) => {
-        const { name, email, address, phone } = contact;
-        return [name, email, address, phone].join(" ");
+    availableGroups() {
+      const groups = new Set();
+      this.contacts.forEach(contact => {
+        if (contact.group && Array.isArray(contact.group)) {
+          contact.group.forEach(g => groups.add(g));
+        }
       });
+      return Array.from(groups).sort();
     },
     filteredContacts() {
-      if (!this.searchText) return this.contacts;
-      return this.contacts.filter((_contact, index) => {
-        return this.contactStrings[index].includes(this.searchText);
+      return this.contacts.filter((contact) => {
+        if (this.selectedGroup && (!contact.group || !contact.group.includes(this.selectedGroup))) {
+          return false;
+        }
+        if (this.searchText) {
+          const { name, email, address, phone } = contact;
+          const contactString = [name, email, address, phone].join(" ").toLowerCase();
+          if (!contactString.includes(this.searchText.toLowerCase())) {
+            return false;
+          }
+        }
+        return true;
       });
     },
+    activeIndex: {
+      get() {
+        if (!this.activeId) return -1;
+        return this.filteredContacts.findIndex(c => c._id === this.activeId);
+      },
+      set(index) {
+        if (index < 0 || index >= this.filteredContacts.length) {
+          this.activeId = null;
+        } else {
+          this.activeId = this.filteredContacts[index]._id;
+        }
+      }
+    },
     activeContact() {
-      if (this.activeIndex < 0) return null;
-      return this.filteredContacts[this.activeIndex];
+      if (!this.activeId) return null;
+      return this.contacts.find(c => c._id === this.activeId) || null;
     },
     filteredContactsCount() {
       return this.filteredContacts.length;
@@ -133,7 +168,7 @@ export default {
 <style scoped>
 .page {
   text-align: left;
-  max-width: 750px;
+  max-width: 950px;
   margin: auto;
 }
 </style>
