@@ -166,8 +166,19 @@ export default {
         ),
     });
     const defaultGroups = ["Gia đình", "Bạn bè", "Cơ quan"];
-    const contactGroups = this.contact.group || [];
-    const mergedGroups = [...new Set([...defaultGroups, ...contactGroups])];
+    const contactGroups = (this.contact.group || []).map(g => {
+       const str = g.trim();
+       return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+    });
+    
+    const groupMap = new Map();
+    [...defaultGroups, ...contactGroups].forEach(g => {
+       const lower = g.toLowerCase();
+       if (!groupMap.has(lower)) {
+          groupMap.set(lower, g);
+       }
+    });
+    const mergedGroups = Array.from(groupMap.values());
 
     return {
       contactLocal: { ...this.contact, group: contactGroups },
@@ -182,12 +193,20 @@ export default {
   },
   methods: {
     addNewGroup() {
-      const grp = this.newGroup.trim();
+      let grp = this.newGroup.trim();
       if (grp) {
-        if (!this.availableGroups.includes(grp)) {
+        grp = grp.charAt(0).toUpperCase() + grp.slice(1).toLowerCase();
+        const grpLower = grp.toLowerCase();
+        
+        const existingAvailableIndex = this.availableGroups.findIndex(g => g.toLowerCase() === grpLower);
+        if (existingAvailableIndex === -1) {
           this.availableGroups.push(grp);
+        } else {
+          grp = this.availableGroups[existingAvailableIndex];
         }
-        if (!this.contactLocal.group.includes(grp)) {
+
+        const existingLocalIndex = this.contactLocal.group.findIndex(g => g.toLowerCase() === grpLower);
+        if (existingLocalIndex === -1) {
           this.contactLocal.group.push(grp);
         }
       }

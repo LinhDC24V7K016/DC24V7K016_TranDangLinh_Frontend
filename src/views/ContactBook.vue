@@ -6,18 +6,34 @@
     <div class="col-md-4 mb-3">
       <select v-model="selectedGroup" class="form-control" title="Lọc theo nhóm">
         <option value="">-- Tất cả nhóm --</option>
-        <option v-for="grp in availableGroups" :key="grp" :value="grp">{{ grp }}</option>
+        <option v-for="grp in availableGroups" :key="grp.id" :value="grp.id">{{ grp.label }}</option>
       </select>
     </div>
     <div class="col-md-6">
-      <h4>
+      <ul class="nav nav-tabs mb-3">
+        <li class="nav-item">
+          <a class="nav-link" :class="{ active: filterType === 'all' }" @click="filterType = 'all'; activeId = null" style="cursor: pointer;">Tất cả liên hệ</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-danger" :class="{ active: filterType === 'favorite' }" @click="filterType = 'favorite'; activeId = null" style="cursor: pointer;">
+            Yêu thích
+          </a>
+        </li>
+      </ul>
+
+      <h4 v-if="filterType === 'all'">
         Danh bạ
         <i class="fas fa-address-book"></i>
+      </h4>
+      <h4 v-else>
+        Liên hệ yêu thích
+        <i class="fas fa-heart text-danger"></i>
       </h4>
       <ContactList
         v-if="filteredContactsCount > 0"
         :contacts="filteredContacts"
         v-model:activeIndex="activeIndex"
+        @toggle-pin="handleTogglePin"
       />
       <p v-else>Không có liên hệ nào.</p>
 
@@ -41,7 +57,7 @@
           Chi tiết liên hệ
           <i class="fas fa-address-card"></i>
         </h4>
-        <ContactCard :contact="activeContact" @filter-group="selectedGroup = $event" />
+        <ContactCard :contact="activeContact" @filter-group="selectedGroup = $event.trim().toLowerCase()" />
         <router-link
           :to="{
             name: 'contact.edit',
@@ -75,31 +91,41 @@ export default {
       contacts: [],
       searchText: "",
       selectedGroup: "",
+      filterType: "all",
       activeId: null,
     };
   },
   watch: {
     searchText() {
-      // We don't explicitly need to clear activeId, it will auto-hide if filtered out.
-      // But to match previous behavior, we can clear it on new search text:
       this.activeId = null;
     },
-    // We remove the selectedGroup watch so that it DOES NOT close the contact when clicking a group badge
   },
   computed: {
     availableGroups() {
-      const groups = new Set();
+      const groupMap = new Map();
       this.contacts.forEach(contact => {
         if (contact.group && Array.isArray(contact.group)) {
-          contact.group.forEach(g => groups.add(g));
+          contact.group.forEach(g => {
+            const lower = g.trim().toLowerCase();
+            if (!groupMap.has(lower) && lower !== "") {
+              const normalized = g.trim().charAt(0).toUpperCase() + g.trim().slice(1).toLowerCase();
+              groupMap.set(lower, normalized);
+            }
+          });
         }
       });
-      return Array.from(groups).sort();
+      const arr = Array.from(groupMap.entries()).map(([id, label]) => ({ id, label }));
+      arr.sort((a, b) => a.label.localeCompare(b.label));
+      return arr;
     },
     filteredContacts() {
-      return this.contacts.filter((contact) => {
-        if (this.selectedGroup && (!contact.group || !contact.group.includes(this.selectedGroup))) {
+      let result = this.contacts.filter((contact) => {
+        if (this.filterType === "favorite" && !contact.favorite) {
           return false;
+        }
+        if (this.selectedGroup) {
+          const hasGroup = contact.group && Array.isArray(contact.group) && contact.group.some(g => g.trim().toLowerCase() === this.selectedGroup);
+          if (!hasGroup) return false;
         }
         if (this.searchText) {
           const { name, email, address, phone } = contact;
@@ -109,6 +135,11 @@ export default {
           }
         }
         return true;
+      });
+
+      return result.sort((a, b) => {
+        if (a.pinned === b.pinned) return 0;
+        return a.pinned ? -1 : 1;
       });
     },
     activeIndex: {
@@ -157,6 +188,18 @@ export default {
     },
     goToAddContact() {
       this.$router.push({ name: "contact.add" });
+    },
+    async handleTogglePin(contact) {
+      try {
+        const updatedContact = { ...contact, pinned: !contact.pinned };
+        await ContactService.update(contact._id, updatedContact);
+        const index = this.contacts.findIndex((c) => c._id === contact._id);
+        if (index !== -1) {
+          this.contacts[index].pinned = updatedContact.pinned;
+        }
+      } catch (err) {
+        console.error("Lỗi khi ghim/bỏ ghim liên hệ:", err);
+      }
     },
   },
   mounted() {
