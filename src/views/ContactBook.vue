@@ -54,14 +54,41 @@
       </h4>
       <ContactList
         v-if="filteredContactsCount > 0"
-        :contacts="filteredContacts"
+        :contacts="paginatedContacts"
         v-model:activeIndex="activeIndex"
         :isExportMode="isExportMode"
         v-model:selectedIds="selectedExportIds"
         @toggle-pin="handleTogglePin"
       />
       <p v-else>Không có liên hệ nào.</p>
-
+      <nav v-if="totalPages > 1" class="mt-3 d-flex justify-content-center">
+        <ul class="pagination pagination-sm mb-0">
+          <li class="page-item" :class="{ disabled: currentPage === 1 }">
+            <button class="page-link" @click="changePage(currentPage - 1)">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+          </li>
+          <li
+            v-for="p in pageNumbers"
+            :key="p"
+            class="page-item"
+            :class="{ active: p === currentPage, disabled: p === '...' }"
+          >
+            <button
+              class="page-link"
+              @click="p !== '...' && changePage(p)"
+              :style="p === '...' ? 'cursor: default' : ''"
+            >
+              {{ p }}
+            </button>
+          </li>
+          <li class="page-item" :class="{ disabled: currentPage === totalPages }">
+            <button class="page-link" @click="changePage(currentPage + 1)">
+              <i class="fas fa-chevron-right"></i>
+            </button>
+          </li>
+        </ul>
+      </nav>
       <div class="mt-3 row justify-content-around align-items-center">
         <button class="btn btn-sm btn-primary mt-2" @click="refreshList">
           <i class="fa-solid fa-arrow-rotate-right"></i> Làm mới
@@ -203,11 +230,22 @@ export default {
       activeId: null,
       isExportMode: false,
       selectedExportIds: [],
+      currentPage: 1,
+      pageSize: 9,
     };
   },
   watch: {
     searchText() {
       this.activeId = null;
+      this.currentPage = 1;
+    },
+    selectedGroup() {
+      this.activeId = null;
+      this.currentPage = 1;
+    },
+    filterType() {
+      this.activeId = null;
+      this.currentPage = 1;
     },
   },
   computed: {
@@ -264,16 +302,39 @@ export default {
         return a.pinned ? -1 : 1;
       });
     },
+    paginatedContacts() {
+      const start = (this.currentPage - 1) * this.pageSize;
+      return this.filteredContacts.slice(start, start + this.pageSize);
+    },
+    totalPages() {
+      return Math.max(1, Math.ceil(this.filteredContacts.length / this.pageSize));
+    },
+    pageNumbers() {
+      const total = this.totalPages;
+      const current = this.currentPage;
+      if (total <= 7) {
+        return Array.from({ length: total }, (_, i) => i + 1);
+      }
+      const pages = [];
+      pages.push(1);
+      if (current > 3) pages.push('...');
+      const start = Math.max(2, current - 1);
+      const end = Math.min(total - 1, current + 1);
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (current < total - 2) pages.push('...');
+      pages.push(total);
+      return pages;
+    },
     activeIndex: {
       get() {
         if (!this.activeId) return -1;
-        return this.filteredContacts.findIndex((c) => c._id === this.activeId);
+        return this.paginatedContacts.findIndex((c) => c._id === this.activeId);
       },
       set(index) {
-        if (index < 0 || index >= this.filteredContacts.length) {
+        if (index < 0 || index >= this.paginatedContacts.length) {
           this.activeId = null;
         } else {
-          this.activeId = this.filteredContacts[index]._id;
+          this.activeId = this.paginatedContacts[index]._id;
         }
       },
     },
@@ -327,6 +388,11 @@ export default {
       } catch (err) {
         console.error("Lỗi khi ghim/bỏ ghim liên hệ:", err);
       }
+    },
+    changePage(page) {
+      if (page < 1 || page > this.totalPages) return;
+      this.currentPage = page;
+      this.activeId = null;
     },
     cancelExport() {
       this.isExportMode = false;
